@@ -57,14 +57,16 @@ the centre barely sees the lens distortion. It is undetermined (1.0 used) until 
 
 ## Live runs (`tracker/live_track.py`, 20 s each, hand moving)
 
-| Run | GPU clock | Processed fps (hand in view) | ms/frame | Frames with 3D hand | Stereo mismatch | Index bones (mm) | Depth |
-|---|---|---|---|---|---|---|---|
-| 1 | governor (~217 MHz) | 27 | 35.1 | 530/539 | 1.58 px | 38 / 26 / 24 | 224 mm |
-| 2 | pinned 1377 MHz | 67.5 | 14.8 | 940/1350 | 1.40 px | 42 / 27 / 26 | 313 mm |
-| 3 | pinned, vectorised heatmap decoding | **98.2** | 9.1 | 1512/1965 | 2.56 px | 55 / 33 / 37 | 291 mm |
+| Run | GPU clock | Processed fps (hand in view) | ms/frame | Camera → 3D latency, median | Frames with 3D hand | Stereo mismatch | Index bones (mm) | Depth |
+|---|---|---|---|---|---|---|---|---|
+| 1 | governor (~217 MHz) | 27 | 35.1 | 41.0 ms | 530/539 | 1.58 px | 38 / 26 / 24 | 224 mm |
+| 2 | pinned 1377 MHz | 67.5 | 14.8 | 19.1 ms | 940/1350 | 1.40 px | 42 / 27 / 26 | 313 mm |
+| 3 | pinned, vectorised heatmap decoding | **98.2** | 9.1 | **14.2 ms** | 1512/1965 | 2.56 px | 55 / 33 / 37 | 291 mm |
 
 The camera delivers 115 fps; with no hand in view the tracker keeps up (112–114 fps, 3.8–8.6 ms per
-frame). Run 3 moved further towards the edges of the view. Its larger mismatch and bone lengths are
+frame; 12.0 ms camera-to-result before the decoder change). Latency is `camera_to_result_ms_median` from
+`live_track.py`: the time from the capture thread receiving a frame to its 3D joints being ready (USB
+transfer and sensor exposure come on top). Run 3 moved further towards the edges of the view. Its larger mismatch and bone lengths are
 the open lens-model question, not a speed effect: the vectorised decoder returns exactly the same
 joints as the loop it replaced on 464 heatmap sets from the recording.
 

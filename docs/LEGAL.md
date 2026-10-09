@@ -20,11 +20,20 @@ code: no `leapd`, `libtrack_server`, LeapC, SDK headers or `.ldat` files.
 
 - **Mercury model licence.** OpenLeap states CC-BY-SA 4.0. The model repository
   (`monado/utilities/hand-tracking-models`, commit `37a8a81`) carries no licence file. Confirmation
-  from the Monado maintainers has been requested. TensorRT engines built from the models stay on
+  from the Monado maintainers is pending (the question is being sent; link to follow). TensorRT engines built from the models stay on
   the device that built them and are never distributed.
 - **LeapUVC.** Its examples are published under the Leap Motion developer SDK agreement. This
   project uses only the documented device behaviour (which control holds which byte), not that
-  code.
+  code, and its frames come from the kernel's `uvcvideo` driver, never from LeapUVC. OpenLeap notes
+  that feeding a tracker from LeapUVC itself would arguably breach that agreement; this project
+  does not.
+- **Interoperability.** The tracker talks to the controller through its standard UVC interface and
+  documented behaviour. Where software is studied to make something interoperate, the EU Software
+  Directive 2009/24/EC allows observing and testing it (Art. 5(3)) and, within limits, decompiling it
+  (Art. 6); contract terms against these are void (Art. 8). In the Netherlands: Auteurswet art. 45l
+  and 45m.
+- **Trademark.** "Leap Motion" names the device this works with. The project is not affiliated
+  with, endorsed by or supported by Ultraleap, and uses no logos.
 - **Fallback V2 under box64.** That route runs Ultraleap's own 2015 V2 service and is governed by
   Ultraleap's licence terms, including restrictions on controlling industrial or commercial
   equipment. Obtain that software yourself; this repository ships none of it, only a patch to box64.

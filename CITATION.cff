@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "leap-jetson: original Leap Motion Controller hand tracking on NVIDIA Jetson GPUs"
+authors:
+  - family-names: "Marquez Aguilar"
+    given-names: "Angel"
+repository-code: "https://github.com/OomAngel/leap-jetson"
+license: Apache-2.0
+version: "0.1.0"
+keywords:
+  - hand tracking
+  - Leap Motion
+  - NVIDIA Jetson
+  - TensorRT
+  - stereo vision
+  - robotics

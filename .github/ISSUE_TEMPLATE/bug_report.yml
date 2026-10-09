@@ -1,0 +1,51 @@
+name: Bug report
+description: Something does not work as described
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: input
+    id: board
+    attributes:
+      label: Jetson board
+      placeholder: e.g. AGX Xavier 32 GB
+    validations:
+      required: true
+  - type: input
+    id: jetpack
+    attributes:
+      label: JetPack / L4T version
+      placeholder: e.g. JetPack 5.1, L4T 35.6.5 (cat /etc/nv_tegra_release)
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: TensorRT and Python versions
+      placeholder: e.g. TensorRT 8.5.2, Python 3.8.10
+    validations:
+      required: true
+  - type: input
+    id: firmware
+    attributes:
+      label: Controller firmware
+      description: As reported by tracker/leap_usb_calib.py or an earlier Ultraleap tool, if known
+  - type: dropdown
+    id: models
+    attributes:
+      label: Do your model files match models.sha256?
+      options:
+        - "yes (sha256sum -c models.sha256 passes)"
+        - "no / not checked"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Commands and output
+      description: The command you ran and its full output. No images that show faces, please.
+      render: shell

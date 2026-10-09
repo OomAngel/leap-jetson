@@ -20,7 +20,8 @@ This patch is a local workaround only. The bug is being reported to box64 as an 
 maintainers can fix it their way.
 
 Build box64 for the Xavier as its docs describe (`-DTEGRA_T194=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo`).
-Apply the patch first with `patch -p1 < box64-cleanup-lock.patch`.
+Apply the patch first with `patch -p1 < box64-cleanup-lock.patch`. The patch is offered under box64's MIT
+licence (`LICENSE.box64`).
 
 ## Running it
 
