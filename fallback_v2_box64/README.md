@@ -16,6 +16,9 @@ that its licence terms apply.
   corrupt the heap (`free(): invalid next size`). V2's `leapd` hits this within seconds.
 - **The fix:** a mutex around both writers.
 
+This patch is a local workaround only. The bug is being reported to box64 as an issue so that its
+maintainers can fix it their way.
+
 Build box64 for the Xavier as its docs describe (`-DTEGRA_T194=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo`).
 Apply the patch first with `patch -p1 < box64-cleanup-lock.patch`.
 
