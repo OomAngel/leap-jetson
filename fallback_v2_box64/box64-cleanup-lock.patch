@@ -1,0 +1,45 @@
+--- a/src/tools/cleanup.c
++++ b/src/tools/cleanup.c
+@@ -1,4 +1,5 @@
+ #include <string.h>
++#include <pthread.h>
+
+ #include "cleanup.h"
+ #include "elfs/elfloader_private.h"
+@@ -12,9 +13,14 @@
+     void*       a;
+ } cleanup_t;
+
++// __cxa_atexit can be called from several emulated threads at once (function-local statics);
++// the cleanup arrays are grown with realloc, so serialise the writers.
++static pthread_mutex_t cleanup_mutex = PTHREAD_MUTEX_INITIALIZER;
++
+ void AddCleanup(x64emu_t *emu, void *p)
+ {
+     (void)emu;
++    pthread_mutex_lock(&cleanup_mutex);
+
+     if(my_context->clean_sz == my_context->clean_cap) {
+         my_context->clean_cap += 32;
+@@ -23,11 +29,13 @@
+     my_context->cleanups[my_context->clean_sz].arg = 0;
+     my_context->cleanups[my_context->clean_sz].a = NULL;
+     my_context->cleanups[my_context->clean_sz++].f = p;
++    pthread_mutex_unlock(&cleanup_mutex);
+ }
+
+ void AddCleanup1Arg(x64emu_t *emu, void *p, void* a, elfheader_t* h)
+ {
+     (void)emu;
++    pthread_mutex_lock(&cleanup_mutex);
+     if (!h)
+         h = my_context->elfs[0];
+
+@@ -38,6 +46,7 @@
+     h->cleanups[h->clean_sz].arg = 1;
+     h->cleanups[h->clean_sz].a = a;
+     h->cleanups[h->clean_sz++].f = p;
++    pthread_mutex_unlock(&cleanup_mutex);
+ }
+
+ void CallCleanup(x64emu_t *emu, elfheader_t* h)

@@ -1,0 +1,21 @@
+leap-jetson
+Copyright 2026 Angel Marquez Aguilar
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This repository contains no Ultraleap / Leap Motion software, libraries, model weights or
+code. It builds on, and credits, the following third-party work, none of which is
+redistributed here:
+
+- Monado "Mercury" hand-tracking models (grayscale_detection_160x160, grayscale_keypoint_jan18),
+  https://gitlab.freedesktop.org/monado/utilities/hand-tracking-models, Collabora / Monado
+  contributors. Downloaded by the user at setup; never vendored. Stated licence CC-BY-SA 4.0
+  (per OpenLeap; the model repository itself carries no licence file at commit 37a8a81).
+- Model input/output conventions follow Monado's Mercury (hg_model.cpp, Boost Software
+  License 1.0) as documented by OpenLeap, https://github.com/julianjc84/OpenLeap
+  (Boost Software License 1.0).
+- The calibration read uses the controller's documented UVC "property knocking" behaviour
+  described by Leap Motion's LeapUVC (https://github.com/leapmotion/leapuvc); no LeapUVC code
+  is included. The reader in tracker/leap_usb_calib.py is an independent implementation.
+- fallback_v2_box64/box64-cleanup-lock.patch is a patch to box64
+  (https://github.com/ptitSeb/box64, MIT licence) and is offered under box64's licence.

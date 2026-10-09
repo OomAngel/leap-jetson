@@ -1,0 +1,23 @@
+[project]
+name = "leap-jetson"
+version = "0.1.0"
+description = "Original Leap Motion Controller hand tracking on NVIDIA Jetson GPUs, with no Ultraleap software"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.8"
+readme = "README.md"
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+src = ["tracker", "fallback_v2_box64"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = [
+  "E501",  # ruff format owns line length; long strings and comments stay
+  "UP006", "UP007", "UP035", "UP045",  # keep Python 3.8 (JetPack 5) compatible annotations
+]
+
+[tool.mypy]
+python_version = "3.8"
+ignore_missing_imports = true
