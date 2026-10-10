@@ -101,16 +101,31 @@ uvcvideo YUYV 640x240 @115 fps  (even bytes = left eye, odd bytes = right eye)
    confidences and the stereo mismatch. TensorRT engines and recordings stay on your device; this
    project never distributes engines.
 
+## Try it without the hardware (replay)
+
+`live_track.py` can play a raw recording instead of the camera, and run Monado's ONNX files with ONNX
+Runtime instead of TensorRT, so it runs on an ordinary PC:
+
+```bash
+pip install onnxruntime opencv-python-headless numpy
+python3 tracker/live_track.py --backend ort --replay rec.raw --every-frame \
+    --calib calibration.bin --models hand-tracking-models --out frames.jsonl --snapshots snapshots/
+```
+
+On a desktop CPU this processes about 43 frames per second. A recording also needs the calibration
+of the controller that made it. A hand-only sample recording will be published with the first release.
+
 ## Tools
 
 | Script | What |
 |---|---|
-| `tracker/live_track.py` | live tracking; JSON lines, stats, annotated snapshots |
+| `tracker/live_track.py` | live tracking or `--replay`; TensorRT or `--backend ort`; JSON lines, stats, annotated snapshots |
 | `tracker/leap_usb_calib.py` | reads the controller's calibration over libusb |
 | `tracker/build_engines.sh` | builds TensorRT engines from the ONNX models with `trtexec` |
 | `tracker/check_precision.py` | ONNX Runtime FP32 vs TensorRT FP32 vs FP16 on a recording |
 | `tracker/probe_detector.py` | detector score for each image geometry |
 | `tracker/fit_lens_model.py` | chooses how to read the stored lens model (stereo mismatch, bone-length spread) |
+| `tests/` | CPU-only unit tests (decoding, geometry, triangulation, calibration parsing, replay): `pytest` |
 
 Record raw frames for the offline tools with
 `v4l2-ctl -d /dev/video6 --set-fmt-video=width=640,height=240,pixelformat=YUYV --stream-mmap --stream-count=1150 --stream-to=rec.raw`.
@@ -127,7 +142,7 @@ Record raw frames for the offline tools with
 ## Roadmap
 
 1. Settle the lens model at the edges of the view (refit on edge recordings).
-2. Replay mode: run the tracker on recorded frames, so it can be tried without the hardware.
+2. A hand-only sample recording, so the replay works out of the box.
 3. 3D smoothing (One-Euro filter) and two hands.
 4. ROS 2 node publishing `/hand_tracking/raw`.
 5. Test on Jetson Orin (JetPack 6).

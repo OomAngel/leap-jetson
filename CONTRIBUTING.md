@@ -13,7 +13,7 @@ that show faces.
 
 - Open an issue first for anything larger than a small fix, so we can agree on the approach.
 - Code must stay compatible with Python 3.8 (JetPack 5's system Python).
-- Run `ruff check .`, `ruff format --check .` and `mypy tracker` before opening a pull request.
+- Run `ruff check .`, `ruff format --check .`, `mypy tracker` and `pytest` before opening a pull request.
 - Never commit model files (`.onnx`), TensorRT engines, raw recordings, calibration files or any
   Ultraleap software.
 - Describe how you tested on hardware: board, JetPack, and what you measured.

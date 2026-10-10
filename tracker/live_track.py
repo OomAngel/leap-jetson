@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""Live 3D hand tracking from the original Leap Motion Controller on the Jetson GPU.
+"""3D hand tracking from the original Leap Motion Controller: live on a Jetson GPU, or replayed anywhere.
 
 Capture: the controller as a plain UVC camera (uvcvideo, YUYV 640x240 at 115 fps; even bytes
 left eye, odd bytes right), read by a thread that always keeps the newest frame. Per frame:
-both eyes prepared (`mercury.prepare_eye`), detector + keypoint model in TensorRT FP16
-(`pipeline.EyeTracker`), the 21 joints triangulated with the controller's own calibration
-(`stereo`). No Ultraleap software is involved.
+both eyes prepared (`mercury.prepare_eye`), detector + keypoint model (`pipeline.EyeTracker`),
+the 21 joints triangulated with the controller's own calibration (`stereo`). No Ultraleap
+software is involved.
+
+Backends: `trt` (TensorRT FP16 engines, Jetson) or `ort` (ONNX Runtime on the .onnx files; any
+PC, CPU or CUDA). `--replay` reads a raw recording instead of the camera (paced at 115 fps, or
+`--every-frame` to process all frames), so the tracker can be tried without the hardware.
 
 Usage:
-  live_track.py --calib calibration.bin --models <engine dir> [--device 6] [--seconds 20]
+  live_track.py --calib calibration.bin --models <dir> [--device 6] [--seconds 20]
+                [--backend trt|ort] [--replay rec.raw [--every-frame]]
                 [--out frames.jsonl] [--snapshots DIR]
 """
 
@@ -23,14 +28,9 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from cuda_rt import spin_wait  # noqa: E402  (before anything touches CUDA)
-
-spin_wait()
-
-from mercury import prepare_eye  # noqa: E402
-from pipeline import EyeTracker, prepared_to_480  # noqa: E402
-from stereo import Calibration, LensModel, triangulate  # noqa: E402
-from trt_engines import MultiEngine  # noqa: E402
+from mercury import prepare_eye
+from pipeline import EyeTracker, Model, prepared_to_480
+from stereo import Calibration, LensModel, triangulate
 
 DET, KP = "grayscale_detection_160x160", "grayscale_keypoint_jan18"
 MODEL = LensModel(power=1.0, rotation_sign=-1.0, tangential=False)  # fit_lens_model.py, 2026-10-09
@@ -70,6 +70,55 @@ class Grabber(threading.Thread):
             return self.frame, self.count, self.stamp
 
 
+class FileSource:
+    """A raw recording (YUYV 640x240 frames back to back) with the same `latest()` interface as `Grabber`.
+
+    Paced: frames are published at the camera's 115 fps and the tracker takes the newest, as live.
+    `every_frame`: each frame is handed over in turn, so none is dropped (for offline analysis).
+    """
+
+    FPS = 115.0
+
+    def __init__(self, path: str, every_frame: bool) -> None:
+        self.frames = np.memmap(path, dtype=np.uint8, mode="r").reshape(-1, 240, 640, 2)
+        self.every_frame = every_frame
+        self.t0 = time.perf_counter()
+        self.done = False
+
+    def start(self) -> None:
+        self.t0 = time.perf_counter()
+
+    def latest(self, after: int) -> tuple[np.ndarray | None, int, float]:
+        n = len(self.frames)
+        if self.every_frame:
+            idx = after  # frame counts are 1-based, like the camera grabber's
+        else:
+            idx = min(int((time.perf_counter() - self.t0) * self.FPS), n - 1)
+            if idx + 1 <= after:
+                return None, after, 0.0
+        if idx >= n:
+            self.done = True
+            return None, after, 0.0
+        if not self.every_frame and idx == n - 1:
+            self.done = True
+        stamp = self.t0 + idx / self.FPS if not self.every_frame else time.perf_counter()
+        return np.asarray(self.frames[idx]), idx + 1, stamp
+
+
+def load_models(backend: str, models: Path) -> tuple[Model, Model]:
+    """Detector and keypoint model for the chosen backend."""
+    if backend == "trt":
+        from cuda_rt import spin_wait  # before anything creates the CUDA context
+
+        spin_wait()
+        from trt_engines import MultiEngine
+
+        return MultiEngine(models / f"{DET}.fp16.engine"), MultiEngine(models / f"{KP}.fp16.engine")
+    from ort_engine import OrtModel
+
+    return OrtModel(models / f"{DET}.onnx"), OrtModel(models / f"{KP}.onnx")
+
+
 def snapshot(path: Path, eyes: tuple[np.ndarray, np.ndarray], hands: tuple) -> None:
     views = []
     for img, hand in zip(eyes, hands):
@@ -94,13 +143,16 @@ def main() -> None:
     ap.add_argument("--seconds", type=float, default=20.0)
     ap.add_argument("--out", help="JSON lines, one per processed frame")
     ap.add_argument("--snapshots", help="directory for a few annotated frames")
+    ap.add_argument("--backend", choices=("trt", "ort"), default="trt", help="TensorRT engines or ONNX Runtime")
+    ap.add_argument("--replay", help="raw recording to play instead of the camera")
+    ap.add_argument("--every-frame", action="store_true", help="with --replay: process every frame, drop none")
     args = ap.parse_args()
 
     cal = Calibration.from_bytes(Path(args.calib).read_bytes())
     m = Path(args.models)
-    det, kp = MultiEngine(m / f"{DET}.fp16.engine"), MultiEngine(m / f"{KP}.fp16.engine")
+    det, kp = load_models(args.backend, m)
     trackers = (EyeTracker(det, kp), EyeTracker(det, kp))
-    grab = Grabber(args.device)
+    grab: Grabber | FileSource = FileSource(args.replay, args.every_frame) if args.replay else Grabber(args.device)
     grab.start()
     out = open(args.out, "w") if args.out else None  # noqa: SIM115
     snapdir = Path(args.snapshots) if args.snapshots else None
@@ -110,11 +162,14 @@ def main() -> None:
     seen, processed, with_hand, last_snap = 0, 0, 0, -1e9
     proc_ms, latency_ms, epi_px, depth_mm = [], [], [], []
     bone_mm: dict[str, list[float]] = {"index_prox": [], "index_int": [], "index_dist": [], "wrist_middle": []}
-    t_end = time.perf_counter() + args.seconds
+    t_start = time.perf_counter()
+    t_end = t_start + args.seconds
     start_count = None
     while time.perf_counter() < t_end:
         frame, count, stamp = grab.latest(seen)
         if frame is None:
+            if isinstance(grab, FileSource) and grab.done:
+                break
             time.sleep(0.0005)
             continue
         if start_count is None:
@@ -157,7 +212,9 @@ def main() -> None:
         if snapdir and t1 - last_snap > 2.0 and any(h is not None for h in hands):
             snapshot(snapdir / f"frame_{count:06d}.png", eyes, hands)
             last_snap = t1
-    grab.running = False
+    elapsed = time.perf_counter() - t_start
+    if isinstance(grab, Grabber):
+        grab.running = False
     captured = seen - (start_count or seen) + 1
     if out:
         out.close()
@@ -166,10 +223,12 @@ def main() -> None:
         return round(float(np.median(v)), 2) if v else None
 
     summary = {
-        "seconds": args.seconds,
+        "source": args.replay or f"/dev/video{args.device}",
+        "backend": args.backend,
+        "seconds": round(elapsed, 2),
         "camera_frames": captured,
         "processed_frames": processed,
-        "processed_fps": round(processed / args.seconds, 1),
+        "processed_fps": round(processed / elapsed, 1) if elapsed > 0 else None,
         "frames_with_3d_hand": with_hand,
         "processing_ms_median": med(proc_ms),
         "processing_ms_p95": round(float(np.percentile(proc_ms, 95)), 2) if proc_ms else None,

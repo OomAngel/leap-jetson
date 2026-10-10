@@ -11,6 +11,7 @@ both ways on acquisition and re-checked every `FLIP_RECHECK` frames.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Dict, Protocol
 
 import numpy as np
 
@@ -23,7 +24,13 @@ from mercury import (
     letterbox,
     normalise,
 )
-from trt_engines import MultiEngine
+
+
+class Model(Protocol):
+    """A detector or keypoint model: TensorRT (`trt_engines.MultiEngine`) or ONNX Runtime (`ort_engine.OrtModel`)."""
+
+    def run(self, feeds: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]: ...
+
 
 HAND_MIN = 0.40  # detector score that acquires a hand
 COAST_MIN = 0.32  # mean keypoint confidence that keeps a hand without the detector
@@ -42,7 +49,7 @@ class Hand:
 
 
 class EyeTracker:
-    def __init__(self, det: MultiEngine, kp: MultiEngine) -> None:
+    def __init__(self, det: Model, kp: Model) -> None:
         self.det, self.kp = det, kp
         self.last: Hand | None = None
         self.flip_age = 0

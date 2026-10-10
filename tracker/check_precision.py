@@ -21,7 +21,6 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 import numpy as np
-import onnxruntime as ort
 
 from mercury import (
     crop_square,
@@ -32,6 +31,7 @@ from mercury import (
     normalise,
     prepare_eye,
 )
+from ort_engine import OrtModel
 from trt_engines import MultiEngine
 
 DET, KP = "grayscale_detection_160x160", "grayscale_keypoint_jan18"
@@ -41,15 +41,6 @@ CROP_SCALE = 1.3
 
 def eyes(raw: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     return prepare_eye(np.ascontiguousarray(raw[:, :, 0])), prepare_eye(np.ascontiguousarray(raw[:, :, 1]))
-
-
-class OrtModel:
-    def __init__(self, path: Path) -> None:
-        self.session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
-        self.outputs = [o.name for o in self.session.get_outputs()]
-
-    def run(self, feeds: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
-        return dict(zip(self.outputs, self.session.run(self.outputs, feeds)))
 
 
 def stats(values: list[float]) -> dict[str, float]:
@@ -74,12 +65,12 @@ def main() -> None:
 
     m = Path(args.models)
     det: Dict[str, Any] = {
-        "ort": OrtModel(m / f"{DET}.onnx"),
+        "ort": OrtModel(m / f"{DET}.onnx", ["CPUExecutionProvider"]),
         "trt32": MultiEngine(m / f"{DET}.fp32.engine"),
         "trt16": MultiEngine(m / f"{DET}.fp16.engine"),
     }
     kp: Dict[str, Any] = {
-        "ort": OrtModel(m / f"{KP}.onnx"),
+        "ort": OrtModel(m / f"{KP}.onnx", ["CPUExecutionProvider"]),
         "trt32": MultiEngine(m / f"{KP}.fp32.engine"),
         "trt16": MultiEngine(m / f"{KP}.fp16.engine"),
     }

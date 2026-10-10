@@ -16,6 +16,9 @@ All notable changes to this project are documented here. The format follows
 - Checking tools: precision (`check_precision.py`), detector geometry (`probe_detector.py`) and
   lens-model fit (`fit_lens_model.py`).
 - Fallback notes for Ultraleap V2 under box64, with a local box64 patch.
+- Replay mode (`--replay`, `--every-frame`) and an ONNX Runtime backend (`--backend ort`): the tracker
+  runs on recorded frames on any PC, without a Jetson or TensorRT.
+- CPU-only unit tests for decoding, geometry, triangulation, calibration parsing and replay.
 
 ### Known issues
 - Edge-of-view 3D accuracy: the stored lens model's radial exponent is not settled.
