@@ -20,7 +20,7 @@ code: no `leapd`, `libtrack_server`, LeapC, SDK headers or `.ldat` files.
 
 - **Mercury model licence.** OpenLeap states CC-BY-SA 4.0. The model repository
   (`monado/utilities/hand-tracking-models`, commit `37a8a81`) carries no licence file. Confirmation
-  from the Monado maintainers is pending (the question is being sent; link to follow). TensorRT engines built from the models stay on
+  from the Monado maintainers was requested on 2026-10-10 ([issue #1](https://gitlab.freedesktop.org/monado/utilities/hand-tracking-models/-/work_items/1)). TensorRT engines built from the models stay on
   the device that built them and are never distributed.
 - **LeapUVC.** Its examples are published under the Leap Motion developer SDK agreement. This
   project uses only the documented device behaviour (which control holds which byte), not that

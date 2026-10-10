@@ -146,7 +146,8 @@ by its licence terms; you obtain that software yourself.
   `grayscale_keypoint_jan18.onnx`, commit `37a8a81`) from the Monado project,
   https://gitlab.freedesktop.org/monado/utilities/hand-tracking-models. **Not included;** you download
   them yourself. The upstream repository carries no licence file; OpenLeap describes the models as
-  CC BY-SA 4.0. Confirmation from the Monado maintainers is pending.
+  CC BY-SA 4.0. Confirmation was asked of the Monado maintainers on 2026-10-10
+  ([issue #1](https://gitlab.freedesktop.org/monado/utilities/hand-tracking-models/-/work_items/1)).
 - Model conventions follow Monado's Mercury (BSL-1.0) as documented by
   [OpenLeap](https://github.com/julianjc84/OpenLeap) (BSL-1.0).
 - The calibration read follows the controller behaviour described by Leap Motion's LeapUVC; no LeapUVC
