@@ -16,8 +16,8 @@ that its licence terms apply.
   corrupt the heap (`free(): invalid next size`). V2's `leapd` hits this within seconds.
 - **The fix:** a mutex around both writers.
 
-This patch is a local workaround only. The bug is being reported to box64 as an issue so that its
-maintainers can fix it their way.
+This patch is a local workaround only. The bug is reported to box64 as [issue #4574](https://github.com/ptitSeb/box64/issues/4574) (15 Oct 2026) so that
+its maintainers can fix it their way.
 
 Build box64 for the Xavier as its docs describe (`-DTEGRA_T194=1 -DCMAKE_BUILD_TYPE=RelWithDebInfo`).
 Apply the patch first with `patch -p1 < box64-cleanup-lock.patch`. The patch is offered under box64's MIT
@@ -41,5 +41,5 @@ licence (`LICENSE.box64`).
 - **Gemini 5.17.1** for Raspberry Pi (arm64) runs natively but has no model for the original
   controller ("No compatible models").
 - box64's native `libatomic` wrapper lacks the 16-byte functions (`__atomic_compare_exchange_16`
-  and others). Use `BOX64_EMULATED_LIBS=libatomic.so.1` with an x86-64 `libatomic.so.1` when an
+  and others); reported as [issue #4573](https://github.com/ptitSeb/box64/issues/4573). Use `BOX64_EMULATED_LIBS=libatomic.so.1` with an x86-64 `libatomic.so.1` when an
   emulated program needs them.
