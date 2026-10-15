@@ -70,6 +70,20 @@ transfer and sensor exposure come on top). Run 3 moved further towards the edges
 the open lens-model question, not a speed effect: the vectorised decoder returns exactly the same
 joints as the loop it replaced on 464 heatmap sets from the recording.
 
+## Replay and backends (`live_track.py --replay`, `--backend`; 15 October 2026)
+
+The 15 s hand recording used above (1,700 frames), replayed after the replay mode was added:
+
+| Machine | Backend | Mode | Processed | fps | Frames with 3D hand | Stereo mismatch | Index proximal / wrist to middle knuckle |
+|---|---|---|---|---|---|---|---|
+| AGX Xavier, GPU pinned | TensorRT FP16 | every frame | 1,700 / 1,700 | 111 | 1,699 | 1.5 px | 37.8 / 90.5 mm |
+| AGX Xavier, CPU | ONNX Runtime | paced at 115 fps | 168 (rest dropped, as live) | 11.3 | 164 | 1.3 px | — |
+| Desktop PC (Ryzen 9 5900X), CPU | ONNX Runtime 1.23 | every frame, 40-frame excerpt, approximate calibration | 40 / 40 | 43 | 40 | 0.9 px | 37.2 / 91.3 mm |
+
+Live on the Xavier after the change (no hand in view): 115 fps, 3.8 ms per frame, 4.0 ms camera to
+result. The replay numbers match the live centre-of-view results above, so the change (TensorRT loaded
+only for `--backend trt`, any model with `run()` accepted) did not alter the tracking.
+
 ## Speed
 
 - **GPU clock:** Jetson's devfreq governor held the GPU at 216.75 MHz during tracking. One
