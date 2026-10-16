@@ -9,9 +9,10 @@ import pytest
 
 from live_track import FileSource
 from mercury import HEATMAP, Crop, decode_heatmaps, eye_to_raw, letterbox, prepare_eye
-from pipeline import prepared_to_480
+from pipeline import Hand, prepared_to_480
 from plumb_line import straightness, undistort
-from stereo import STRUCT, Calibration, Camera, LensModel, cayley, stereo_consistent, triangulate
+from stereo import STRUCT, Calibration, Camera, LensModel, cayley, project, rays, stereo_consistent, triangulate
+from stereo_tracker import StereoTracker
 
 
 def gaussian_heatmaps(peaks: np.ndarray, sigma: float = 1.2) -> np.ndarray:
@@ -136,3 +137,32 @@ def test_plumb_line_recovers_the_warp_exponent() -> None:
     scores = {p: straightness(undistort(cam, px, p)) for p in (0.0, 0.5, 1.0, 1.5)}
     assert min(scores, key=lambda p: scores[p]) == 1.0
     assert scores[1.0] < 1e-6 < scores[0.0]
+
+
+def test_project_inverts_rays() -> None:
+    radial = np.array([1.357, 0.287, 0.028, 1.529, 0.339, 0.001])
+    cam = Camera(
+        focal=134.0, cx=316.0, cy=238.0, tangential=np.zeros(2), radial=radial, rotation=np.array([0.01, -0.02, 0.005])
+    )
+    model = LensModel(power=0.1, rotation_sign=-1.0)
+    rng = np.random.default_rng(3)
+    px = np.stack([rng.uniform(40, 600, 50), rng.uniform(40, 440, 50)], axis=1)
+    r = rays(cam, px, model)
+    pts = r * (rng.uniform(150, 450, 50)[:, None] / r[:, 2:3])
+    assert np.abs(project(cam, pts, model) - px).max() < 1e-3
+
+
+def test_stereo_tracker_places_the_hand_in_the_other_eye() -> None:
+    # A hand 300 mm away: its joints in the left eye, moved to 300 mm and projected into the right eye,
+    # must land where the right eye sees it (and the other way round). Catches a wrong baseline sign.
+    cal = Calibration.from_bytes(calibration_bytes())
+    st = StereoTracker(None, None, cal, LensModel(power=0.1))  # type: ignore[arg-type]
+    rng = np.random.default_rng(4)
+    pts3 = np.stack([rng.uniform(-40, 40, 21), rng.uniform(-30, 30, 21), np.full(21, 300.0)], axis=1)
+    f, c = 134.0, np.array([320.0, 240.0])
+    left = prepared_to_480(pts3[:, :2] / pts3[:, 2:] * f + c)
+    right = prepared_to_480((pts3[:, :2] - [cal.baseline_mm, 0.0]) / pts3[:, 2:] * f + c)
+    crop = Crop(0, 0, 100)
+    for ref, src, dst in ((0, left, right), (1, right, left)):
+        hand = Hand(src, np.ones(21), crop, False, True, 1.0)
+        assert np.abs(st._centre(ref, hand, 300.0) - np.median(dst, axis=0)).max() < 1e-3

@@ -48,6 +48,8 @@ uvcvideo YUYV 640x240 @115 fps  (even bytes = left eye, odd bytes = right eye)
      previous joints as a temporal prior, coasting when the detector loses a far hand
   -> both eyes: undistort the 21 joints with the controller's own lens model,
      rectify, triangulate (baseline 40 mm)                            stereo.triangulate
+  -> eyes disagree: the confident eye places the other eye's crop
+     through the 3D hand, keypoints again; still > 3 px: no 3D         stereo_tracker.StereoTracker
 ```
 
 - **Calibration** lives on the controller (156 bytes). It is read with two standard UVC control requests
@@ -139,10 +141,12 @@ Record raw frames for the offline tools with
   depth at 25 cm and 23 mm at 35 cm. Depth noise lengthens bones on average: wrist to middle knuckle measures
   88–91 mm at 20–30 cm, 101 mm at 30–35 cm and about 109 mm at 33 cm. Keep the hand 20–30 cm above the
   controller for measurements.
-- **Eyes that disagree:** far, side-on hands against a cluttered background (the arm, a lamp) can put the
-  joints on different places in the two eyes. Such frames get no 3D: a frame is dropped when the median
-  stereo mismatch of its joints is above 3 px (`--max-epipolar`). This drops 17% of frames in a normal
-  recording and most frames of a far, side-on one ([docs/RESULTS.md](docs/RESULTS.md)).
+- **Eyes that disagree:** far, side-on hands against a cluttered background (the arm, a lamp) can make one
+  eye's tracker drift onto the forearm. The eyes are tracked together (`tracker/stereo_tracker.py`): when
+  they disagree, the more confident eye places the other eye's crop through the 3D hand and the keypoint
+  model runs again there. Frames that still disagree by more than 3 px get no 3D (`--max-epipolar`):
+  2.5% of a normal recording, 2.4% of a far, side-on one ([docs/RESULTS.md](docs/RESULTS.md)). Repairs
+  cost time: a recording full of hard frames replays at 54 fps instead of 99.
 - **Lens model:** the controller's images are already nearly rectilinear. A plumb-line test (straight
   sheet edges through the whole view) puts the stored radial correction at 0.1 of its nominal strength
   (`tracker/plumb_line.py`); the full correction bends straight edges by half again as much.

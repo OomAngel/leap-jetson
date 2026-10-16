@@ -22,6 +22,9 @@ All notable changes to this project are documented here. The format follows
 - Stereo-consistency gate: a frame whose median stereo mismatch is above 3 px gets no 3D
   (`--max-epipolar`); the summary counts those frames.
 - Plumb-line test of the lens model (`plumb_line.py`).
+- The two eyes are tracked together (`stereo_tracker.py`): when they disagree, the more confident eye
+  places the other eye's crop through the 3D hand. Frames with 3D: 1,403 → 1,657 of 1,700 in a normal
+  recording, 260 → 1,114 of 2,300 in a far, side-on one; `--no-stereo-repair` turns it off.
 
 ### Changed
 - The stored radial lens correction is applied at exponent 0.1 instead of 1.0, from the plumb-line

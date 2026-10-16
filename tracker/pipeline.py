@@ -77,6 +77,13 @@ class EyeTracker:
             return (*b, True)
         return (*a, False)
 
+    def track_at(
+        self, img: np.ndarray, cx: float, cy: float, half: float, flip: bool, prior: np.ndarray | None
+    ) -> Hand:
+        """Keypoints in a crop placed from outside (the other eye, through the 3D hand)."""
+        pts, conf, crop = self._keypoints(img, cx, cy, half, flip, prior)
+        return Hand(pts, conf, crop, flip, False, float(conf.mean()))
+
     def update(self, img: np.ndarray) -> Hand | None:
         canvas, lb = letterbox(img)
         best = decode_detections(self.det.run({"inputImg": normalise(canvas)[None, None]}), lb)[0]

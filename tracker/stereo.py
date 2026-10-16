@@ -118,3 +118,16 @@ def stereo_consistent(err: np.ndarray, ok: np.ndarray, max_px: float = MAX_EPIPO
     """True when both eyes saw the same joints: the median epipolar error of the confident joints is
     at most `max_px`. Above that the 3D is wrong (one eye on the forearm, the other on the fingers)."""
     return bool(ok.any()) and float(np.median(err[ok])) <= max_px
+
+
+def project(cam: Camera, pts: np.ndarray, model: LensModel) -> np.ndarray:
+    """Points [N,3] in this camera's rectified frame (mm) -> pixels [N,2] in its unrotated 640x480
+    eye image: the inverse of `rays` (the radial warp is inverted by fixed-point iteration; tangential
+    terms are not modelled, as in the reading the tracker uses)."""
+    v = pts @ cayley(model.rotation_sign * cam.rotation)  # rectified -> camera frame (R is orthonormal)
+    xu, yu = v[:, 0] / v[:, 2], v[:, 1] / v[:, 2]
+    xd, yd = xu.copy(), yu.copy()
+    for _ in range(20):
+        s = cam.warp(xd * xd + yd * yd) ** model.power
+        xd, yd = xu / s, yu / s
+    return np.stack([xd * cam.focal + cam.cx, yd * cam.focal + cam.cy], axis=1)

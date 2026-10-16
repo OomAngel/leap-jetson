@@ -29,8 +29,9 @@ import cv2
 import numpy as np
 
 from mercury import prepare_eye
-from pipeline import EyeTracker, Model, prepared_to_480
-from stereo import MAX_EPIPOLAR_PX, Calibration, LensModel, stereo_consistent, triangulate
+from pipeline import Model, prepared_to_480
+from stereo import MAX_EPIPOLAR_PX, Calibration, LensModel
+from stereo_tracker import StereoTracker
 
 DET, KP = "grayscale_detection_160x160", "grayscale_keypoint_jan18"
 MODEL = LensModel(
@@ -153,13 +154,15 @@ def main() -> None:
         default=MAX_EPIPOLAR_PX,
         help="drop the 3D of a frame whose median stereo mismatch is above this (px)",
     )
+    ap.add_argument("--no-stereo-repair", action="store_true", help="track the eyes independently (for comparison)")
     ap.add_argument("--every-frame", action="store_true", help="with --replay: process every frame, drop none")
     args = ap.parse_args()
 
     cal = Calibration.from_bytes(Path(args.calib).read_bytes())
     m = Path(args.models)
     det, kp = load_models(args.backend, m)
-    trackers = (EyeTracker(det, kp), EyeTracker(det, kp))
+    tracker = StereoTracker(det, kp, cal, MODEL, args.max_epipolar)
+    tracker.repair = not args.no_stereo_repair
     grab: Grabber | FileSource = FileSource(args.replay, args.every_frame) if args.replay else Grabber(args.device)
     grab.start()
     out = open(args.out, "w") if args.out else None  # noqa: SIM115
@@ -167,7 +170,7 @@ def main() -> None:
     if snapdir:
         snapdir.mkdir(parents=True, exist_ok=True)
 
-    seen, processed, with_hand, rejected, last_snap = 0, 0, 0, 0, -1e9
+    seen, processed, with_hand, rejected, repaired, last_snap = 0, 0, 0, 0, 0, -1e9
     proc_ms, latency_ms, epi_px, depth_mm = [], [], [], []
     bone_mm: dict[str, list[float]] = {"index_prox": [], "index_int": [], "index_dist": [], "wrist_middle": []}
     t_start = time.perf_counter()
@@ -185,17 +188,17 @@ def main() -> None:
         seen = count
         t0 = time.perf_counter()
         eyes = (prepare_eye(np.ascontiguousarray(frame[:, :, 0])), prepare_eye(np.ascontiguousarray(frame[:, :, 1])))
-        hands = (trackers[0].update(eyes[0]), trackers[1].update(eyes[1]))
+        res = tracker.update(eyes)
+        hands = res.hands
         record: dict = {"t": round(stamp, 4), "frame": count}
-        if hands[0] is not None and hands[1] is not None:
-            pts, err = triangulate(cal, prepared_to_480(hands[0].pts), prepared_to_480(hands[1].pts), MODEL)
-            conf = np.minimum(hands[0].conf, hands[1].conf)
-            ok = conf > 0.3
-            consistent = stereo_consistent(err, ok, args.max_epipolar)
+        if res.pts is not None and res.err is not None and res.ok is not None:
+            pts, err, ok = res.pts, res.err, res.ok
+            consistent = res.consistent
             if ok.sum() >= 10 and not consistent:
                 rejected += 1
-            if ok.sum() >= 10 and consistent:
+            if consistent:
                 with_hand += 1
+                repaired += res.repaired is not None
                 epi_px += list(err[ok])
                 depth_mm.append(float(np.median(pts[ok, 2])))
                 for name, (i, j) in {
@@ -206,13 +209,15 @@ def main() -> None:
                 }.items():
                     if ok[i] and ok[j]:
                         bone_mm[name].append(float(np.linalg.norm(pts[i] - pts[j])))
+            assert hands[0] is not None and hands[1] is not None
             record.update(
                 left_px480=np.round(prepared_to_480(hands[0].pts), 2).tolist(),
                 right_px480=np.round(prepared_to_480(hands[1].pts), 2).tolist(),
                 joints_mm=np.round(pts, 1).tolist() if consistent else None,
-                conf=np.round(conf, 3).tolist(),
+                conf=np.round(np.minimum(hands[0].conf, hands[1].conf), 3).tolist(),
                 epipolar_px=np.round(err, 2).tolist(),
                 detected=[hands[0].detected, hands[1].detected],
+                repaired=res.repaired,
             )
         t1 = time.perf_counter()
         processed += 1
@@ -242,6 +247,7 @@ def main() -> None:
         "processed_fps": round(processed / elapsed, 1) if elapsed > 0 else None,
         "frames_with_3d_hand": with_hand,
         "frames_rejected_stereo_mismatch": rejected,
+        "frames_repaired_from_other_eye": repaired,
         "processing_ms_median": med(proc_ms),
         "processing_ms_p95": round(float(np.percentile(proc_ms, 95)), 2) if proc_ms else None,
         "camera_to_result_ms_median": med(latency_ms),

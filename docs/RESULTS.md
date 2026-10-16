@@ -125,6 +125,36 @@ The table above used exponent 1.0. With the exponent from the plumb-line test (0
 give: centre 1,403 frames with 3D, 1.29 px, depth 249 mm, index proximal 37.5 mm, wrist to middle
 knuckle 89.4 mm; edges left/right 260 frames, 1.14 px, depth 326 mm, 41.3 mm, 109.0 mm.
 
+## Coupled eyes (`tracker/stereo_tracker.py`, 16 October 2026)
+
+The disagreeing frames above came from each eye tracking on its own: a crop follows that eye's own
+previous joints, so an eye that drifts onto the forearm stays there. The stereo tracker couples them:
+when the eyes disagree (or one has lost the hand), the eye with the stronger hand (detected before
+coasting, then higher keypoint confidence) places its joints at the last good depth (then 200, 300,
+400 mm; placements within 0.15 crop widths of one already tried are skipped), projects them into the
+other eye (`stereo.project`, the inverse of `rays`), and runs the keypoint model in a crop there, with
+the same handedness and **no joint prior**. A repair counts only if the eyes then agree (3 px gate); the
+repaired eye continues from it.
+
+Replays on the Xavier (TensorRT, every frame, exponent 0.1):
+
+| Recording | Eyes | Frames with 3D | Dropped (> 3 px) | Repaired | Mismatch | Depth | Index proximal | Wrist to middle knuckle | Replay fps | ms/frame median / p95 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| centre, 1,700 frames | independent | 1,403 | 296 | — | 1.29 px | 249 mm | 37.5 mm | 89.4 mm | 91 | — |
+| centre | coupled | **1,657** | 43 | 52 | 1.28 px | 248 mm | 37.3 mm | 90.1 mm | 89 | 9.0 / 21.0 |
+| edges left/right, 2,300 frames | independent | 260 | 223 | — | 1.14 px | 326 mm | 41.3 mm | 109.0 mm | 99 | — |
+| edges left/right | coupled | **1,114** | 56 | 334 | 1.05 px | 359 mm | 43.6 mm | 102.6 mm | 54 | 16.6 / 35.5 |
+
+- **The agreement is not an echo of the projection.** A first version gave the repaired eye the
+  projected joints as prior; without that prior the gain stays almost whole (centre 1,696 → 1,661,
+  edges 1,266 → 1,161 frames with 3D), so it comes from placing the crop, not from the model repeating
+  the prior. The prior is not used.
+- **Visual check:** six repaired frames spread over the edge recording, joints drawn in both eyes: on
+  the hand in both, same pose.
+- **Cost:** a repair is one keypoint call per placement tried. Hard recordings replay at 54 fps; live,
+  the tracker takes the newest camera frame, so it would skip frames rather than lag. Not yet measured
+  live.
+
 ## Plumb-line test of the lens model (`tracker/plumb_line.py`, 16 October 2026)
 
 A sheet of paper taped to a hardcover book, held 12–20 cm above the controller and moved through the
