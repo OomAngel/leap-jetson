@@ -152,7 +152,9 @@ Record raw frames for the offline tools with
 If you need Ultraleap's own tracking on a Jetson, the 2015 V2 service (x64) runs under the box64 emulator
 at 80–90 fps once a box64 race is fixed. Newer Ultraleap services do not run there. See
 [fallback_v2_box64/](fallback_v2_box64/README.md). This route uses Ultraleap's software and is governed
-by its licence terms; you obtain that software yourself.
+by its licence terms; you obtain that software yourself. The box64 bugs found on the way are reported
+upstream: [#4574](https://github.com/ptitSeb/box64/issues/4574) (the race the patch fixes) and
+[#4573](https://github.com/ptitSeb/box64/issues/4573) (16-byte atomics, met with newer Ultraleap services).
 
 ## Licence and credits
 
@@ -160,9 +162,10 @@ by its licence terms; you obtain that software yourself.
 - **Hand models:** Monado's Mercury models (`grayscale_detection_160x160.onnx`,
   `grayscale_keypoint_jan18.onnx`, commit `37a8a81`) from the Monado project,
   https://gitlab.freedesktop.org/monado/utilities/hand-tracking-models. **Not included;** you download
-  them yourself. The upstream repository carries no licence file; OpenLeap describes the models as
-  CC BY-SA 4.0. Confirmation was asked of the Monado maintainers on 2026-10-10
-  ([issue #1](https://gitlab.freedesktop.org/monado/utilities/hand-tracking-models/-/work_items/1)).
+  them yourself. **Licence unconfirmed, question pending:** the upstream repository carries no licence
+  file, and OpenLeap describes the models as CC BY-SA 4.0. The Monado maintainers were asked on
+  2026-10-10 ([issue #1](https://gitlab.freedesktop.org/monado/utilities/hand-tracking-models/-/work_items/1));
+  this section will be updated with their answer.
 - Model conventions follow Monado's Mercury (BSL-1.0) as documented by
   [OpenLeap](https://github.com/julianjc84/OpenLeap) (BSL-1.0).
 - The calibration read follows the controller behaviour described by Leap Motion's LeapUVC; no LeapUVC
