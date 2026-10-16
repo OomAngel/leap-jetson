@@ -19,6 +19,9 @@ All notable changes to this project are documented here. The format follows
 - Replay mode (`--replay`, `--every-frame`) and an ONNX Runtime backend (`--backend ort`): the tracker
   runs on recorded frames on any PC, without a Jetson or TensorRT.
 - CPU-only unit tests for decoding, geometry, triangulation, calibration parsing and replay.
+- Stereo-consistency gate: a frame whose median stereo mismatch is above 3 px gets no 3D
+  (`--max-epipolar`); the summary counts those frames.
 
 ### Known issues
-- Edge-of-view 3D accuracy: the stored lens model's radial exponent is not settled.
+- 3D accuracy falls with distance (bones too long beyond ~30 cm).
+- The stored lens model's radial exponent is not settled (matters only near the image border).

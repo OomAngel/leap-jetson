@@ -10,7 +10,7 @@ import pytest
 from live_track import FileSource
 from mercury import HEATMAP, Crop, decode_heatmaps, eye_to_raw, letterbox, prepare_eye
 from pipeline import prepared_to_480
-from stereo import STRUCT, Calibration, LensModel, cayley, triangulate
+from stereo import STRUCT, Calibration, LensModel, cayley, stereo_consistent, triangulate
 
 
 def gaussian_heatmaps(peaks: np.ndarray, sigma: float = 1.2) -> np.ndarray:
@@ -108,3 +108,13 @@ def test_file_source_every_frame(tmp_path) -> None:
         seen = count
         values.append(int(frame[0, 0, 0]))
     assert values == [0, 1, 2] and src.done
+
+
+def test_stereo_gate_rejects_mismatched_eyes() -> None:
+    ok = np.ones(21, bool)
+    assert stereo_consistent(np.full(21, 1.5), ok)
+    assert not stereo_consistent(np.full(21, 20.0), ok)
+    err = np.full(21, 1.0)
+    err[:5] = 50.0  # a few outliers do not move the median
+    assert stereo_consistent(err, ok)
+    assert not stereo_consistent(err, np.zeros(21, bool))

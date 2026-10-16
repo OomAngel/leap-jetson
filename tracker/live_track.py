@@ -30,7 +30,7 @@ import numpy as np
 
 from mercury import prepare_eye
 from pipeline import EyeTracker, Model, prepared_to_480
-from stereo import Calibration, LensModel, triangulate
+from stereo import MAX_EPIPOLAR_PX, Calibration, LensModel, stereo_consistent, triangulate
 
 DET, KP = "grayscale_detection_160x160", "grayscale_keypoint_jan18"
 MODEL = LensModel(power=1.0, rotation_sign=-1.0, tangential=False)  # fit_lens_model.py, 2026-10-09
@@ -145,6 +145,12 @@ def main() -> None:
     ap.add_argument("--snapshots", help="directory for a few annotated frames")
     ap.add_argument("--backend", choices=("trt", "ort"), default="trt", help="TensorRT engines or ONNX Runtime")
     ap.add_argument("--replay", help="raw recording to play instead of the camera")
+    ap.add_argument(
+        "--max-epipolar",
+        type=float,
+        default=MAX_EPIPOLAR_PX,
+        help="drop the 3D of a frame whose median stereo mismatch is above this (px)",
+    )
     ap.add_argument("--every-frame", action="store_true", help="with --replay: process every frame, drop none")
     args = ap.parse_args()
 
@@ -159,7 +165,7 @@ def main() -> None:
     if snapdir:
         snapdir.mkdir(parents=True, exist_ok=True)
 
-    seen, processed, with_hand, last_snap = 0, 0, 0, -1e9
+    seen, processed, with_hand, rejected, last_snap = 0, 0, 0, 0, -1e9
     proc_ms, latency_ms, epi_px, depth_mm = [], [], [], []
     bone_mm: dict[str, list[float]] = {"index_prox": [], "index_int": [], "index_dist": [], "wrist_middle": []}
     t_start = time.perf_counter()
@@ -183,7 +189,10 @@ def main() -> None:
             pts, err = triangulate(cal, prepared_to_480(hands[0].pts), prepared_to_480(hands[1].pts), MODEL)
             conf = np.minimum(hands[0].conf, hands[1].conf)
             ok = conf > 0.3
-            if ok.sum() >= 10:
+            consistent = stereo_consistent(err, ok, args.max_epipolar)
+            if ok.sum() >= 10 and not consistent:
+                rejected += 1
+            if ok.sum() >= 10 and consistent:
                 with_hand += 1
                 epi_px += list(err[ok])
                 depth_mm.append(float(np.median(pts[ok, 2])))
@@ -198,7 +207,7 @@ def main() -> None:
             record.update(
                 left_px480=np.round(prepared_to_480(hands[0].pts), 2).tolist(),
                 right_px480=np.round(prepared_to_480(hands[1].pts), 2).tolist(),
-                joints_mm=np.round(pts, 1).tolist(),
+                joints_mm=np.round(pts, 1).tolist() if consistent else None,
                 conf=np.round(conf, 3).tolist(),
                 epipolar_px=np.round(err, 2).tolist(),
                 detected=[hands[0].detected, hands[1].detected],
@@ -230,6 +239,7 @@ def main() -> None:
         "processed_frames": processed,
         "processed_fps": round(processed / elapsed, 1) if elapsed > 0 else None,
         "frames_with_3d_hand": with_hand,
+        "frames_rejected_stereo_mismatch": rejected,
         "processing_ms_median": med(proc_ms),
         "processing_ms_p95": round(float(np.percentile(proc_ms, 95)), 2) if proc_ms else None,
         "camera_to_result_ms_median": med(latency_ms),

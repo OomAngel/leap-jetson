@@ -53,7 +53,8 @@ for no gain in keypoints, so the pipeline uses the unmirrored one.
 | Cayley rotation sign +1 | 1.95 px |
 
 The radial exponent (0 to 3) changed the mismatch by less than 0.02 px here, because a hand near
-the centre barely sees the lens distortion. It is undetermined (1.0 used) until edge data are fitted.
+the centre barely sees the lens distortion. It is undetermined (1.0 used). Edge recordings on
+16 October could not decide it either; see "Distance, disagreeing eyes and the stereo gate" below.
 
 ## Live runs (`tracker/live_track.py`, 20 s each, hand moving)
 
@@ -66,8 +67,9 @@ the centre barely sees the lens distortion. It is undetermined (1.0 used) until 
 The camera delivers 115 fps; with no hand in view the tracker keeps up (112–114 fps, 3.8–8.6 ms per
 frame; 12.0 ms camera-to-result before the decoder change). Latency is `camera_to_result_ms_median` from
 `live_track.py`: the time from the capture thread receiving a frame to its 3D joints being ready (USB
-transfer and sensor exposure come on top). Run 3 moved further towards the edges of the view. Its larger mismatch and bone lengths are
-the open lens-model question, not a speed effect: the vectorised decoder returns exactly the same
+transfer and sensor exposure come on top). Run 3 had the hand further away and nearer the edges. Its larger mismatch and bone
+lengths come from distance and from frames where the two eyes disagree (16 October analysis below; first
+attributed to the lens model, which the edge recordings did not support), not from a speed effect: the vectorised decoder returns exactly the same
 joints as the loop it replaced on 464 heatmap sets from the recording.
 
 ## Replay and backends (`live_track.py --replay`, `--backend`; 15 October 2026)
@@ -83,6 +85,43 @@ The 15 s hand recording used above (1,700 frames), replayed after the replay mod
 Live on the Xavier after the change (no hand in view): 115 fps, 3.8 ms per frame, 4.0 ms camera to
 result. The replay numbers match the live centre-of-view results above, so the change (TensorRT loaded
 only for `--backend trt`, any model with `run()` accepted) did not alter the tracking.
+
+## Distance, disagreeing eyes and the stereo gate (16 October 2026)
+
+Two 20 s recordings with the hand moved along the edges of the view (left/right, then front/back) at
+about 15 and 35 cm, compared with the 15 s centre recording. Analysis offline from the per-frame 2D
+joints in `frames.jsonl`.
+
+- **The eyes disagreed, the lens did not.** In the left/right edge recording the median stereo mismatch
+  was 14–45 px at every image radius, centre included (centre recording: 1.4 px). Even with the
+  detector finding the hand in both eyes, 343 of 508 frames disagreed by more than 10 px (centre
+  recording: 1 of 1,099). Looking at those frames: the hand was far (30–45 cm), turned side-on, against
+  the arm and a bright lamp, and the keypoints fell on the forearm in one eye and on the fingers in
+  the other. The front/back recording had no frame with a hand in both eyes.
+- **No reading of the lens model fixes it.** On the frames where the eyes agree, exponents 0–3 and an
+  inverted warp change the median mismatch by under 0.1 px, and none brings the bone lengths back
+  (wrist to middle knuckle 114–141 mm against 89–93 mm in the centre recording).
+- **Distance does.** Focal length 134 px (at 640×480) and baseline 40 mm: one pixel of disparity is
+  11.7 mm of depth at 25 cm, 16.8 mm at 30 cm, 22.9 mm at 35 cm, 29.9 mm at 40 cm (z² / (baseline × focal)). Depth noise makes a bone longer on
+  average. Centre recording, frames where the eyes agree, wrist to middle knuckle: 87.8 mm at
+  200–250 mm, 91.2 mm at 250–300 mm, 102.2 mm at 300–350 mm.
+
+Stereo gate (`stereo.stereo_consistent`, 3 px), replayed on the Xavier with every frame:
+
+| Recording | Frames with 3D | Dropped by the gate | Mismatch | Depth | Index proximal | Wrist to middle knuckle |
+|---|---|---|---|---|---|---|
+| centre, 1,700 frames | 1,405 | 294 | 1.29 px | 252 mm | 37.6 mm | 90.2 mm |
+| edges left/right, 2,300 frames | 262 | 221 | 1.10 px | 346 mm | 43.8 mm | 113.2 mm |
+| edges front/back, 2,300 frames | 0 | 8 | — | — | — | — |
+
+Offline, on the centre recording, the gate narrows wrist-to-middle-knuckle from 76.9–120.8 mm to
+78.6–113.8 mm (10th–90th percentile); on the edge recording it removes triangulations of up to
+kilometres (90th percentile 208 mm with the gate). Thresholds of 2–5 px give similar medians; 3 px keeps
+82% of the centre frames.
+
+The exponent matters only near the image border, where hand data are too sparse and noisy to fit it.
+A printed checkerboard moved across the view would decide it: straight lines must stay straight and
+squares keep their size.
 
 ## Speed
 

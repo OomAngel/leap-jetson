@@ -10,9 +10,9 @@ Ultraleap never shipped hand tracking for this controller on ARM Linux, and its 
 gone. leap-jetson reads the controller as a plain USB camera, runs Monado's open "Mercury" hand models
 in TensorRT, and triangulates 21 joints per hand with the calibration stored on the controller.
 
-> **Status: working prototype.** Last validated 2026-10-10 on a Jetson AGX Xavier (JetPack 5.1,
-> L4T 35.6.5, MAXN, GPU clock pinned). Live tracking runs at camera rate. 3D is correct near the
-> centre of the view; towards the edges the lens model is not settled yet (see [Limits](#limits)).
+> **Status: working prototype.** Last validated 2026-10-16 on a Jetson AGX Xavier (JetPack 5.1,
+> L4T 35.6.5, MAXN, GPU clock pinned). Live tracking runs at camera rate. 3D is accurate with the hand
+> 20–30 cm above the controller; it degrades with distance (see [Limits](#limits)).
 
 *Not affiliated with, endorsed by or supported by Ultraleap. Leap Motion is a trademark of its owner.*
 
@@ -28,7 +28,8 @@ in TensorRT, and triangulates 21 joints per hand with the calibration stored on 
 | Bone lengths, centre of view | index finger 38 / 26 / 24 mm, wrist to middle knuckle 90–96 mm |
 
 Each figure, the run it comes from and the method are in [docs/RESULTS.md](docs/RESULTS.md). The 98 fps run
-had the hand nearer the edges of the view, where the open lens-model question shows (2.56 px mismatch).
+had the hand further away and turned more, where the two eyes disagree more often (2.56 px mismatch); frames
+where they disagree are now dropped (see [Limits](#limits)).
 
 ## Tested on
 
@@ -132,16 +133,24 @@ Record raw frames for the offline tools with
 
 ## Limits
 
-- **Edge of view:** the radial exponent of the stored lens model is not settled. With hands near the
-  edges, the stereo mismatch rises to about 2.6 px and bones come out up to ~45% too long. Fix in
-  progress: refit on edge recordings with the 2D joints now logged in `frames.jsonl`.
+- **Distance:** depth resolution falls with the square of the distance. With the controller's 40 mm
+  baseline and a 134 px focal length at this resolution, one pixel of stereo disagreement is 12 mm of
+  depth at 25 cm and 23 mm at 35 cm. Depth noise lengthens bones on average: wrist to middle knuckle measures
+  88–91 mm at 20–30 cm, 102 mm at 30–35 cm and about 113 mm at 35 cm. Keep the hand 20–30 cm above the
+  controller for measurements.
+- **Eyes that disagree:** far, side-on hands against a cluttered background (the arm, a lamp) can put the
+  joints on different places in the two eyes. Such frames get no 3D: a frame is dropped when the median
+  stereo mismatch of its joints is above 3 px (`--max-epipolar`). This drops 17% of frames in a normal
+  recording and most frames of a far, side-on one ([docs/RESULTS.md](docs/RESULTS.md)).
+- **Lens model at the image edge:** how to read the stored radial coefficients (an exponent) is not
+  settled; hand data are too noisy to decide it, and it matters only near the image border.
 - One hand is tracked. The detector has two slots, but the 3D path takes the best hand per eye.
 - Fists and heavily occluded poses are the weakest, as in any keypoint model.
 - No smoothing in 3D yet.
 
 ## Roadmap
 
-1. Settle the lens model at the edges of the view (refit on edge recordings).
+1. Check the stored lens model with a printed checkerboard (straight lines, known square size).
 2. A hand-only sample recording, so the replay works out of the box.
 3. 3D smoothing (One-Euro filter) and two hands.
 4. ROS 2 node publishing `/hand_tracking/raw`.

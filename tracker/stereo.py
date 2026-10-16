@@ -109,3 +109,12 @@ def triangulate(
     pts = np.stack([xl * z, 0.5 * (yl + yr) * z, z], axis=1)
     focal = 0.5 * (cal.left.focal + cal.right.focal)
     return pts, np.abs(yl - yr) * focal
+
+
+MAX_EPIPOLAR_PX = 3.0  # median vertical mismatch above which the eyes track different things (RESULTS.md)
+
+
+def stereo_consistent(err: np.ndarray, ok: np.ndarray, max_px: float = MAX_EPIPOLAR_PX) -> bool:
+    """True when both eyes saw the same joints: the median epipolar error of the confident joints is
+    at most `max_px`. Above that the 3D is wrong (one eye on the forearm, the other on the fingers)."""
+    return bool(ok.any()) and float(np.median(err[ok])) <= max_px
