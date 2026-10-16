@@ -33,7 +33,9 @@ from pipeline import EyeTracker, Model, prepared_to_480
 from stereo import MAX_EPIPOLAR_PX, Calibration, LensModel, stereo_consistent, triangulate
 
 DET, KP = "grayscale_detection_160x160", "grayscale_keypoint_jan18"
-MODEL = LensModel(power=1.0, rotation_sign=-1.0, tangential=False)  # fit_lens_model.py, 2026-10-09
+MODEL = LensModel(
+    power=0.1, rotation_sign=-1.0, tangential=False
+)  # plumb_line.py 2026-10-16; rotation: fit_lens_model.py
 BONES = [(0, b) for b in (1, 5, 9, 13, 17)] + [(b + i, b + i + 1) for b in (1, 5, 9, 13, 17) for i in range(3)]
 
 

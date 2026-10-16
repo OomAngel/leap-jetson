@@ -49,7 +49,7 @@ class Camera:
 class LensModel:
     """How to read the stored coefficients; chosen by fit_lens_model.py."""
 
-    power: float = 1.0  # undistorted = distorted * w(r2)**power
+    power: float = 0.1  # undistorted = distorted * w(r2)**power; 0.1 from plumb_line.py (2026-10-16)
     rotation_sign: float = -1.0  # R = cayley(rotation_sign * rotation)
     tangential: bool = False
 

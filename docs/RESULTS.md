@@ -53,8 +53,9 @@ for no gain in keypoints, so the pipeline uses the unmirrored one.
 | Cayley rotation sign +1 | 1.95 px |
 
 The radial exponent (0 to 3) changed the mismatch by less than 0.02 px here, because a hand near
-the centre barely sees the lens distortion. It is undetermined (1.0 used). Edge recordings on
-16 October could not decide it either; see "Distance, disagreeing eyes and the stereo gate" below.
+the centre barely sees the lens distortion. Hand data could not decide it, not even from edge
+recordings (see "Distance, disagreeing eyes and the stereo gate" below). It was settled with a
+plumb-line test on 16 October: **0.1** (see "Plumb-line test" below; 1.0 was used until then).
 
 ## Live runs (`tracker/live_track.py`, 20 s each, hand moving)
 
@@ -103,7 +104,8 @@ joints in `frames.jsonl`.
   (wrist to middle knuckle 114–141 mm against 89–93 mm in the centre recording).
 - **Distance does.** Focal length 134 px (at 640×480) and baseline 40 mm: one pixel of disparity is
   11.7 mm of depth at 25 cm, 16.8 mm at 30 cm, 22.9 mm at 35 cm, 29.9 mm at 40 cm (z² / (baseline × focal)). Depth noise makes a bone longer on
-  average. Centre recording, frames where the eyes agree, wrist to middle knuckle: 87.8 mm at
+  average. Centre recording, frames where the eyes agree, wrist to middle knuckle (exponent 1.0;
+  with 0.1: 87.6, 91.3 and 100.8 mm): 87.8 mm at
   200–250 mm, 91.2 mm at 250–300 mm, 102.2 mm at 300–350 mm.
 
 Stereo gate (`stereo.stereo_consistent`, 3 px), replayed on the Xavier with every frame:
@@ -119,9 +121,30 @@ Offline, on the centre recording, the gate narrows wrist-to-middle-knuckle from 
 kilometres (90th percentile 208 mm with the gate). Thresholds of 2–5 px give similar medians; 3 px keeps
 82% of the centre frames.
 
-The exponent matters only near the image border, where hand data are too sparse and noisy to fit it.
-A printed checkerboard moved across the view would decide it: straight lines must stay straight and
-squares keep their size.
+The table above used exponent 1.0. With the exponent from the plumb-line test (0.1), the same replays
+give: centre 1,403 frames with 3D, 1.29 px, depth 249 mm, index proximal 37.5 mm, wrist to middle
+knuckle 89.4 mm; edges left/right 260 frames, 1.14 px, depth 326 mm, 41.3 mm, 109.0 mm.
+
+## Plumb-line test of the lens model (`tracker/plumb_line.py`, 16 October 2026)
+
+A sheet of paper taped to a hardcover book, held 12–20 cm above the controller and moved through the
+view for 20 s (2,300 frames; every 10th used). The sheet's edges are straight, so after a correct
+undistortion they must be straight lines. Edge points were found to sub-pixel precision along the
+normals of each long side (middle 70%, one clean step per profile, so fingers and corners drop out);
+edges not straight to 0.6 px without any correction (bent paper, a finger) were left out. The edges
+reached a normalised radius of 0.74 (median) to 1.1–1.3 (95th percentile), i.e. well into the outer
+part of the 135° view.
+
+| Eye | Clean edges | Best exponent (bootstrap 5–95%) | RMS from straight: none | 0.1 | 0.5 | 1.0 (old) |
+|---|---|---|---|---|---|---|
+| left | 311 of 413 | 0.05 (0.05–0.15) | 0.213 px | 0.208 px | 0.240 px | 0.327 px |
+| right | 285 of 408 | 0.10 (0.10–0.25) | 0.208 px | 0.197 px | 0.229 px | 0.319 px |
+
+The controller's images are already nearly rectilinear: the stored radial function shifts points by
+up to 11 px at full strength, which bends straight edges by half again as much as no correction.
+Exponent 0.1 is used from now on (`live_track.py`, `stereo.LensModel`). Rotation and tangential terms
+map lines to lines, so this test does not check them; the rotation sign stays as fitted above. The
+synthetic check in `tests/` confirms the scoring recovers a known exponent.
 
 ## Speed
 

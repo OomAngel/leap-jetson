@@ -21,7 +21,11 @@ All notable changes to this project are documented here. The format follows
 - CPU-only unit tests for decoding, geometry, triangulation, calibration parsing and replay.
 - Stereo-consistency gate: a frame whose median stereo mismatch is above 3 px gets no 3D
   (`--max-epipolar`); the summary counts those frames.
+- Plumb-line test of the lens model (`plumb_line.py`).
+
+### Changed
+- The stored radial lens correction is applied at exponent 0.1 instead of 1.0, from the plumb-line
+  test; 3D near the centre changes by about 1%, further out by about 4%.
 
 ### Known issues
 - 3D accuracy falls with distance (bones too long beyond ~30 cm).
-- The stored lens model's radial exponent is not settled (matters only near the image border).

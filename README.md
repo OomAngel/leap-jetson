@@ -126,6 +126,7 @@ of the controller that made it. A hand-only sample recording will be published w
 | `tracker/check_precision.py` | ONNX Runtime FP32 vs TensorRT FP32 vs FP16 on a recording |
 | `tracker/probe_detector.py` | detector score for each image geometry |
 | `tracker/fit_lens_model.py` | chooses how to read the stored lens model (stereo mismatch, bone-length spread) |
+| `tracker/plumb_line.py` | plumb-line test of the lens model: straight edges of a sheet must stay straight |
 | `tests/` | CPU-only unit tests (decoding, geometry, triangulation, calibration parsing, replay): `pytest` |
 
 Record raw frames for the offline tools with
@@ -136,25 +137,25 @@ Record raw frames for the offline tools with
 - **Distance:** depth resolution falls with the square of the distance. With the controller's 40 mm
   baseline and a 134 px focal length at this resolution, one pixel of stereo disagreement is 12 mm of
   depth at 25 cm and 23 mm at 35 cm. Depth noise lengthens bones on average: wrist to middle knuckle measures
-  88–91 mm at 20–30 cm, 102 mm at 30–35 cm and about 113 mm at 35 cm. Keep the hand 20–30 cm above the
+  88–91 mm at 20–30 cm, 101 mm at 30–35 cm and about 109 mm at 33 cm. Keep the hand 20–30 cm above the
   controller for measurements.
 - **Eyes that disagree:** far, side-on hands against a cluttered background (the arm, a lamp) can put the
   joints on different places in the two eyes. Such frames get no 3D: a frame is dropped when the median
   stereo mismatch of its joints is above 3 px (`--max-epipolar`). This drops 17% of frames in a normal
   recording and most frames of a far, side-on one ([docs/RESULTS.md](docs/RESULTS.md)).
-- **Lens model at the image edge:** how to read the stored radial coefficients (an exponent) is not
-  settled; hand data are too noisy to decide it, and it matters only near the image border.
+- **Lens model:** the controller's images are already nearly rectilinear. A plumb-line test (straight
+  sheet edges through the whole view) puts the stored radial correction at 0.1 of its nominal strength
+  (`tracker/plumb_line.py`); the full correction bends straight edges by half again as much.
 - One hand is tracked. The detector has two slots, but the 3D path takes the best hand per eye.
 - Fists and heavily occluded poses are the weakest, as in any keypoint model.
 - No smoothing in 3D yet.
 
 ## Roadmap
 
-1. Check the stored lens model with a printed checkerboard (straight lines, known square size).
-2. A hand-only sample recording, so the replay works out of the box.
-3. 3D smoothing (One-Euro filter) and two hands.
-4. ROS 2 node publishing `/hand_tracking/raw`.
-5. Test on Jetson Orin (JetPack 6).
+1. A hand-only sample recording, so the replay works out of the box.
+2. 3D smoothing (One-Euro filter), which also reduces the bone lengthening at distance, and two hands.
+3. ROS 2 node publishing `/hand_tracking/raw`.
+4. Test on Jetson Orin (JetPack 6).
 
 ## Fallback: Ultraleap V2 under box64
 

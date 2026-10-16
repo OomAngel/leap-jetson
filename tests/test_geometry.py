@@ -10,7 +10,8 @@ import pytest
 from live_track import FileSource
 from mercury import HEATMAP, Crop, decode_heatmaps, eye_to_raw, letterbox, prepare_eye
 from pipeline import prepared_to_480
-from stereo import STRUCT, Calibration, LensModel, cayley, stereo_consistent, triangulate
+from plumb_line import straightness, undistort
+from stereo import STRUCT, Calibration, Camera, LensModel, cayley, stereo_consistent, triangulate
 
 
 def gaussian_heatmaps(peaks: np.ndarray, sigma: float = 1.2) -> np.ndarray:
@@ -118,3 +119,20 @@ def test_stereo_gate_rejects_mismatched_eyes() -> None:
     err[:5] = 50.0  # a few outliers do not move the median
     assert stereo_consistent(err, ok)
     assert not stereo_consistent(err, np.zeros(21, bool))
+
+
+def test_plumb_line_recovers_the_warp_exponent() -> None:
+    # A camera with the controller's stored radial coefficients; a straight line distorted with exponent 1
+    # must come out straightest when undistorted with exponent 1.
+    radial = np.array([1.357, 0.287, 0.028, 1.529, 0.339, 0.001])
+    cam = Camera(focal=134.0, cx=320.0, cy=240.0, tangential=np.zeros(2), radial=radial, rotation=np.zeros(3))
+    xu = np.linspace(-1.2, 1.2, 200)
+    yu = 0.6 + 0.2 * xu  # a straight line, undistorted
+    xd, yd = xu.copy(), yu.copy()
+    for _ in range(50):  # invert undistorted = distorted * w(r_d^2)
+        w = cam.warp(xd * xd + yd * yd)
+        xd, yd = xu / w, yu / w
+    px = np.stack([xd * cam.focal + cam.cx, yd * cam.focal + cam.cy], axis=1)
+    scores = {p: straightness(undistort(cam, px, p)) for p in (0.0, 0.5, 1.0, 1.5)}
+    assert min(scores, key=lambda p: scores[p]) == 1.0
+    assert scores[1.0] < 1e-6 < scores[0.0]
