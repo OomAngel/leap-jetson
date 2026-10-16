@@ -3,6 +3,8 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 ![Platform: Jetson AGX Xavier · JetPack 5.1 · TensorRT 8.5](https://img.shields.io/badge/platform-Jetson%20AGX%20Xavier%20%C2%B7%20JetPack%205.1%20%C2%B7%20TensorRT%208.5-76b900.svg)
 
+<p align="center"><img src="docs/media/hero.gif" width="300" alt="A hand seen by the controller's infrared camera, with the tracked skeleton drawn on it: open hand, pinch, pointing"></p>
+
 3D hand tracking for the **original Leap Motion Controller** (LMC1, USB `f182:0003`) on **NVIDIA Jetson
 GPUs**: TensorRT FP16, no Ultraleap software.
 
