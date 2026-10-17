@@ -147,8 +147,9 @@ Record raw frames for the offline tools with
   eye's tracker drift onto the forearm. The eyes are tracked together (`tracker/stereo_tracker.py`): when
   they disagree, the more confident eye places the other eye's crop through the 3D hand and the keypoint
   model runs again there. Frames that still disagree by more than 3 px get no 3D (`--max-epipolar`):
-  2.5% of a normal recording, 2.4% of a far, side-on one ([docs/RESULTS.md](docs/RESULTS.md)). Repairs
-  cost time: a recording full of hard frames replays at 54 fps instead of 99.
+  2.5% of a normal recording, 2.4% of a far, side-on one ([docs/RESULTS.md](docs/RESULTS.md)). After a
+  good frame, both crops follow the 3D hand without the detector, which makes repairs rare and frames
+  cheaper; live speed with this is not re-measured yet.
 - **Lens model:** the controller's images are already nearly rectilinear. A plumb-line test (straight
   sheet edges through the whole view) puts the stored radial correction at 0.1 of its nominal strength
   (`tracker/plumb_line.py`); the full correction bends straight edges by half again as much.

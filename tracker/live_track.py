@@ -155,6 +155,7 @@ def main() -> None:
         help="drop the 3D of a frame whose median stereo mismatch is above this (px)",
     )
     ap.add_argument("--no-stereo-repair", action="store_true", help="track the eyes independently (for comparison)")
+    ap.add_argument("--no-follow", action="store_true", help="run the detector on every frame (for comparison)")
     ap.add_argument("--every-frame", action="store_true", help="with --replay: process every frame, drop none")
     args = ap.parse_args()
 
@@ -163,6 +164,7 @@ def main() -> None:
     det, kp = load_models(args.backend, m)
     tracker = StereoTracker(det, kp, cal, MODEL, args.max_epipolar)
     tracker.repair = not args.no_stereo_repair
+    tracker.follow = not args.no_follow
     grab: Grabber | FileSource = FileSource(args.replay, args.every_frame) if args.replay else Grabber(args.device)
     grab.start()
     out = open(args.out, "w") if args.out else None  # noqa: SIM115
@@ -170,7 +172,7 @@ def main() -> None:
     if snapdir:
         snapdir.mkdir(parents=True, exist_ok=True)
 
-    seen, processed, with_hand, rejected, repaired, last_snap = 0, 0, 0, 0, 0, -1e9
+    seen, processed, with_hand, rejected, repaired, followed, last_snap = 0, 0, 0, 0, 0, 0, -1e9
     proc_ms, latency_ms, epi_px, depth_mm = [], [], [], []
     bone_mm: dict[str, list[float]] = {"index_prox": [], "index_int": [], "index_dist": [], "wrist_middle": []}
     t_start = time.perf_counter()
@@ -199,6 +201,7 @@ def main() -> None:
             if consistent:
                 with_hand += 1
                 repaired += res.repaired is not None
+                followed += res.followed
                 epi_px += list(err[ok])
                 depth_mm.append(float(np.median(pts[ok, 2])))
                 for name, (i, j) in {
@@ -218,6 +221,7 @@ def main() -> None:
                 epipolar_px=np.round(err, 2).tolist(),
                 detected=[hands[0].detected, hands[1].detected],
                 repaired=res.repaired,
+                followed=res.followed,
             )
         t1 = time.perf_counter()
         processed += 1
@@ -248,6 +252,7 @@ def main() -> None:
         "frames_with_3d_hand": with_hand,
         "frames_rejected_stereo_mismatch": rejected,
         "frames_repaired_from_other_eye": repaired,
+        "frames_followed_from_3d": followed,
         "processing_ms_median": med(proc_ms),
         "processing_ms_p95": round(float(np.percentile(proc_ms, 95)), 2) if proc_ms else None,
         "camera_to_result_ms_median": med(latency_ms),

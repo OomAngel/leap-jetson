@@ -25,6 +25,9 @@ All notable changes to this project are documented here. The format follows
 - The two eyes are tracked together (`stereo_tracker.py`): when they disagree, the more confident eye
   places the other eye's crop through the 3D hand. Frames with 3D: 1,403 → 1,657 of 1,700 in a normal
   recording, 260 → 1,114 of 2,300 in a far, side-on one; `--no-stereo-repair` turns it off.
+- Following: after a frame where the eyes agree, both crops are placed from the projected 3D hand and the
+  detector is skipped (at least every 8 frames it runs); repairs 526 → 66 on a hand recording, 18–46%
+  less time per frame, steadier bone lengths; `--no-follow` turns it off.
 
 ### Changed
 - The stored radial lens correction is applied at exponent 0.1 instead of 1.0, from the plumb-line

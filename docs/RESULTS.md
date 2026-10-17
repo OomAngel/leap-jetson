@@ -155,6 +155,36 @@ Replays on the Xavier (TensorRT, every frame, exponent 0.1):
   the tracker takes the newest camera frame, so it would skip frames rather than lag. Not yet measured
   live.
 
+## Following from 3D (17 October 2026)
+
+Live, the coupled tracker ran at 55 fps (camera 115 fps; 98 fps before coupling) with 28% of frames
+needing a repair, 87% of processed frames with 3D and 19 ms camera-to-3D latency: the coupling only
+stepped in after the eyes had drifted apart. Now, after a frame where the eyes agree, the next frame
+skips the detector: both crops are placed by projecting the last 3D hand into each eye (crop centre the
+median of the projected joints, size blended from the last crop and the joints' extent), each eye keeps
+its own previous joints as prior, and the detector path runs when following fails and at least every
+8 frames.
+
+Replays on the Xavier, every frame. The GPU clock was **not** pinned (the board had rebooted: 115 MHz),
+so only the comparison between modes at the same clock is meaningful, not the absolute speed:
+
+| Recording | Mode | Frames with 3D | Dropped | Repaired | Followed | ms/frame median | Mismatch |
+|---|---|---|---|---|---|---|---|
+| hand-only (new), 2,300 | detector every frame | 2,006 | 52 | 526 | — | 21.9 | 1.18 px |
+| hand-only | following | 2,016 | 40 | 66 | 1,783 | **15.6** | 0.95 px |
+| centre, 1,700 | detector every frame | 1,657 | 43 | 52 | — | 19.0 | 1.28 px |
+| centre | following | 1,621 | 79 | 20 | 1,416 | **15.5** | 0.99 px |
+| edges left/right, 2,300 | detector every frame | 1,114 | 56 | 334 | — | 23.7 | 1.05 px |
+| edges left/right | following | **1,449** | 22 | 67 | 1,259 | **12.7** | 0.86 px |
+
+**Following is not a shrunken or echoed hand.** On the same frames the two modes' 2D joints differ by
+1.3–2.1 px (median) and following gives 3–7% shorter wrist-to-middle-knuckle distances. Bones are rigid,
+so the length should not change from frame to frame: the robust spread (MAD/median, mean of five bones)
+on 1,986 hand-only frames is 13.8% with the detector on every frame and **7.5%** with following (centre
+recording 15.8% vs 11.5%). The detector path is the noisier one, and noise lengthens bones on average.
+Two variants were tried and not kept: the detector's crop size while following (8.3% spread, more
+frames) and the crop centred on the joints' bounding box (11.0%).
+
 ## Plumb-line test of the lens model (`tracker/plumb_line.py`, 16 October 2026)
 
 A sheet of paper taped to a hardcover book, held 12–20 cm above the controller and moved through the
