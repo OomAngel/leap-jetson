@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-11-08
+
 ### Added
 - Live 3D hand tracking for the original Leap Motion Controller on a Jetson AGX Xavier
   (JetPack 5.1 / L4T 35.6.5, TensorRT 8.5.2, Python 3.8): UVC stereo capture at 115 fps, calibration
