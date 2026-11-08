@@ -8,6 +8,8 @@ authors:
 repository-code: "https://github.com/OomAngel/leap-jetson"
 license: Apache-2.0
 version: "0.1.0"
+date-released: "2026-11-08"
+doi: "10.5281/zenodo.24050502"
 keywords:
   - hand tracking
   - Leap Motion
