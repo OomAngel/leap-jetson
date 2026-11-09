@@ -11,6 +11,11 @@ All notable changes to this project are documented here. The format follows
   frame by frame, in both eyes.
 - A hand-only replay sample attached to the v0.1.0 release (`leap-jetson-sample-v1.zip`).
 
+### Changed
+- The README's results now give the live figures of the current tracker, measured on 2026-11-09: about 80 fps and
+  14.5 ms with a hand in view. The 98 fps in the 0.1.0 notes below came from an earlier version that tracked each
+  eye on its own.
+
 ## [0.1.0] - 2026-11-08
 
 ### Added

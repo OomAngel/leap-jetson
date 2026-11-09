@@ -13,9 +13,10 @@ Ultraleap never shipped hand tracking for this controller on ARM Linux, and its 
 gone. leap-jetson reads the controller as a plain USB camera, runs Monado's open "Mercury" hand models
 in TensorRT, and triangulates 21 joints per hand with the calibration stored on the controller.
 
-> **Status: working prototype.** Last validated 2026-10-16 on a Jetson AGX Xavier (JetPack 5.1,
-> L4T 35.6.5, MAXN, GPU clock pinned). Live tracking runs at camera rate. 3D is accurate with the hand
-> 20–30 cm above the controller; it degrades with distance (see [Limits](#limits)).
+> **Status: working prototype.** Last validated 2026-11-09 on a Jetson AGX Xavier (JetPack 5.1,
+> L4T 35.6.5, MAXN, GPU clock pinned). With a hand in view, live tracking runs at about 80 fps (the camera
+> delivers 115). 3D is accurate with the hand 20–30 cm above the controller; it degrades with distance
+> (see [Limits](#limits)).
 
 *Not affiliated with, endorsed by or supported by Ultraleap. Leap Motion is a trademark of its owner.*
 
@@ -24,15 +25,16 @@ in TensorRT, and triangulates 21 joints per hand with the calibration stored on 
 | | |
 |---|---|
 | Camera | 640×240 per eye at 115 fps (UVC, `uvcvideo`) |
-| Tracking rate, hand in view | **98 fps** (27 fps with the default GPU governor → 67.5 fps with the GPU clock pinned → 98 fps with vectorised heatmap decoding) |
-| Latency, camera frame → 3D joints | 14 ms median (same run as the 98 fps) |
+| Tracking rate, hand in view | **about 80 fps** (76–82 fps in three 20 s runs, GPU clock pinned) |
+| Latency, camera frame → 3D joints | 14.5 ms median (14.2–14.6 ms) |
+| Processed frames with a 3D hand | 90–98% |
 | FP16 TensorRT vs ONNX FP32 | joints differ by 0.04 px on average (max 1.6 px) |
-| Stereo consistency, centre of view | 1.4–1.6 px median between the eyes |
-| Bone lengths, centre of view | index finger 38 / 26 / 24 mm, wrist to middle knuckle 90–96 mm |
+| Stereo consistency | 0.76–0.85 px median between the eyes |
+| Bone lengths, hand 23–26 cm above | index finger 38–39 / 24 / 21 mm; wrist to middle knuckle 89–90 mm in two runs, 103 mm in the third |
 
-Each figure, the run it comes from and the method are in [docs/RESULTS.md](docs/RESULTS.md). The 98 fps run
-had the hand further away and turned more, where the two eyes disagree more often (2.56 px mismatch); frames
-where they disagree are now dropped (see [Limits](#limits)).
+Each figure, the run it comes from and the method are in [docs/RESULTS.md](docs/RESULTS.md). An earlier
+version reached 98 fps and 14 ms by tracking each eye on its own, but gave a 3D hand on only 77% of its frames,
+with the eyes 2.56 px apart. Tracking the eyes together costs speed and gives more usable frames.
 
 ## Tested on
 
@@ -150,14 +152,15 @@ Record raw frames for the offline tools with
   baseline and a 134 px focal length at this resolution, one pixel of stereo disagreement is 12 mm of
   depth at 25 cm and 23 mm at 35 cm. Depth noise lengthens bones on average: wrist to middle knuckle measures
   88–91 mm at 20–30 cm, 101 mm at 30–35 cm and about 109 mm at 33 cm. Keep the hand 20–30 cm above the
-  controller for measurements.
+  controller for measurements. One of three live runs read 103 mm at the same depth, for a reason not yet
+  known, so do not rely on a single run's bone lengths.
 - **Eyes that disagree:** far, side-on hands against a cluttered background (the arm, a lamp) can make one
   eye's tracker drift onto the forearm. The eyes are tracked together (`tracker/stereo_tracker.py`): when
   they disagree, the more confident eye places the other eye's crop through the 3D hand and the keypoint
   model runs again there. Frames that still disagree by more than 3 px get no 3D (`--max-epipolar`):
   2.5% of a normal recording, 2.4% of a far, side-on one ([docs/RESULTS.md](docs/RESULTS.md)). After a
   good frame, both crops follow the 3D hand without the detector, which makes repairs rare and frames
-  cheaper; live speed with this is not re-measured yet.
+  cheaper.
 - **Lens model:** the controller's images are already nearly rectilinear. A plumb-line test (straight
   sheet edges through the whole view) puts the stored radial correction at 0.1 of its nominal strength
   (`tracker/plumb_line.py`); the full correction bends straight edges by half again as much.

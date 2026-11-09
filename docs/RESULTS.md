@@ -185,6 +185,24 @@ recording 15.8% vs 11.5%). The detector path is the noisier one, and noise lengt
 Two variants were tried and not kept: the detector's crop size while following (8.3% spread, more
 frames) and the crop centred on the joints' bounding box (11.0%).
 
+## Live, current tracker (9 November 2026)
+
+Three 20 s runs on the AGX Xavier (GPU clock pinned at 1377 MHz, `live_track.py --device 0 --seconds 20`), with a
+hand moving 20–30 cm above the controller. This is the coupled tracker with following, code as in v0.1.0.
+
+| Run | Processed fps | ms/frame median / p95 | Camera → 3D latency, median | Frames with 3D hand | Repaired | Followed | Rejected (> 3 px) | Stereo mismatch | Depth | Index bones (mm) | Wrist to middle knuckle |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | 79.4 | 10.1 / 24.5 | 14.6 ms | 1551/1589 | 67 | 1374 | 6 | 0.85 px | 232 mm | 39 / 24 / 21 | 102.8 mm |
+| 2 | **82.2** | 9.8 / 22.6 | **14.2 ms** | 1615/1645 | 47 | 1431 | 10 | 0.78 px | 265 mm | 39 / 24 / 21 | 90.0 mm |
+| 3 | 75.7 | 9.9 / 33.2 | 14.5 ms | 1367/1515 | 46 | 1212 | 21 | 0.76 px | 264 mm | 38 / 24 / 21 | 89.4 mm |
+
+- **Against the earlier live runs:** the coupled tracker without following ran at 55 fps with 87% of processed
+  frames giving a 3D hand and 19 ms latency. The version that tracked each eye on its own ran at 98.2 fps with 77%
+  (1512/1965), 2.56 px and 14.2 ms. The hand's path differed between these runs, so this is not a controlled
+  comparison.
+- **Run 1's long bones are not explained by depth.** In the 200–250 mm band, wrist to middle knuckle was 102.8 mm in
+  run 1 and 92.2 and 88.1 mm in runs 2 and 3. The pose or the cause has not been checked; no images were kept.
+
 ## Plumb-line test of the lens model (`tracker/plumb_line.py`, 16 October 2026)
 
 A sheet of paper taped to a hardcover book, held 12–20 cm above the controller and moved through the
