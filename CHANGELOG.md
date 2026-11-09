@@ -6,10 +6,15 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-09
+
 ### Added
 - `tracker/mask_recording.py`: cuts a section of a raw recording and blacks out everything but the hand,
   frame by frame, in both eyes.
-- A hand-only replay sample attached to the v0.1.0 release (`leap-jetson-sample-v1.zip`).
+- A hand-only replay sample attached to this release (`leap-jetson-sample-v1.zip`): 460 frames and the
+  controller's calibration, so the tracker can be tried without the hardware.
+- Automated tests on Python 3.8 and 3.12, lint and type checks on every push.
+- Citation text and BibTeX in the README, and a link to the write-up.
 
 ### Changed
 - The README's results now give the live figures of the current tracker, measured on 2026-11-09: about 80 fps and

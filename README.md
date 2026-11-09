@@ -127,7 +127,7 @@ On a desktop CPU this processes about 43 frames per second. A recording also nee
 of the controller that made it.
 
 A sample to try it with is attached to the
-[v0.1.0 release](https://github.com/OomAngel/leap-jetson/releases/tag/v0.1.0):
+[latest release](https://github.com/OomAngel/leap-jetson/releases/latest):
 `leap-jetson-sample-v1.zip` (3.8 MB) holds 460 frames (4 s) and that controller's calibration. Each frame
 is masked to the hand, so the forearm is cut off and the wrist reads a little off: use it to try the
 tracker, not to measure accuracy. Its `README.txt` has the command and the measurements.

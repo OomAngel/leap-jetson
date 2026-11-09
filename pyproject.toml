@@ -1,6 +1,6 @@
 [project]
 name = "leap-jetson"
-version = "0.1.0"
+version = "0.1.1"
 description = "Original Leap Motion Controller hand tracking on NVIDIA Jetson GPUs, with no Ultraleap software"
 license = { text = "Apache-2.0" }
 requires-python = ">=3.8"
