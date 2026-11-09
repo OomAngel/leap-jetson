@@ -5,6 +5,7 @@ title: "leap-jetson: original Leap Motion Controller hand tracking on NVIDIA Jet
 authors:
   - family-names: "Marquez Aguilar"
     given-names: "Angel"
+    orcid: "https://orcid.org/0000-0001-7050-9900"
 repository-code: "https://github.com/OomAngel/leap-jetson"
 license: Apache-2.0
 version: "0.1.1"
