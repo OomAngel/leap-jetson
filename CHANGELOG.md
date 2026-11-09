@@ -6,6 +6,11 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+- `tracker/mask_recording.py`: cuts a section of a raw recording and blacks out everything but the hand,
+  frame by frame, in both eyes.
+- A hand-only replay sample attached to the v0.1.0 release (`leap-jetson-sample-v1.zip`).
+
 ## [0.1.0] - 2026-11-08
 
 ### Added

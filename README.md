@@ -119,7 +119,13 @@ python3 tracker/live_track.py --backend ort --replay rec.raw --every-frame \
 ```
 
 On a desktop CPU this processes about 43 frames per second. A recording also needs the calibration
-of the controller that made it. A hand-only sample recording will be published with the first release.
+of the controller that made it.
+
+A sample to try it with is attached to the
+[v0.1.0 release](https://github.com/OomAngel/leap-jetson/releases/tag/v0.1.0):
+`leap-jetson-sample-v1.zip` (3.8 MB) holds 460 frames (4 s) and that controller's calibration. Each frame
+is masked to the hand, so the forearm is cut off and the wrist reads a little off: use it to try the
+tracker, not to measure accuracy. Its `README.txt` has the command and the measurements.
 
 ## Tools
 
@@ -131,6 +137,7 @@ of the controller that made it. A hand-only sample recording will be published w
 | `tracker/check_precision.py` | ONNX Runtime FP32 vs TensorRT FP32 vs FP16 on a recording |
 | `tracker/probe_detector.py` | detector score for each image geometry |
 | `tracker/fit_lens_model.py` | chooses how to read the stored lens model (stereo mismatch, bone-length spread) |
+| `tracker/mask_recording.py` | cuts a section of a recording and blacks out everything but the hand, frame by frame |
 | `tracker/plumb_line.py` | plumb-line test of the lens model: straight edges of a sheet must stay straight |
 | `tests/` | CPU-only unit tests (decoding, geometry, triangulation, calibration parsing, replay): `pytest` |
 
@@ -160,10 +167,9 @@ Record raw frames for the offline tools with
 
 ## Roadmap
 
-1. A hand-only sample recording, so the replay works out of the box.
-2. 3D smoothing (One-Euro filter), which also reduces the bone lengthening at distance, and two hands.
-3. ROS 2 node publishing `/hand_tracking/raw`.
-4. Test on Jetson Orin (JetPack 6).
+1. 3D smoothing (One-Euro filter), which also reduces the bone lengthening at distance, and two hands.
+2. ROS 2 node publishing `/hand_tracking/raw`.
+3. Test on Jetson Orin (JetPack 6).
 
 ## Fallback: Ultraleap V2 under box64
 
