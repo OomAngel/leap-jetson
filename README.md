@@ -206,5 +206,20 @@ advice).
 
 ## Citation and support
 
-Use GitHub's "Cite this repository" (from `CITATION.cff`). One maintainer, best effort: report bugs with
+Marquez Aguilar, A. (2026). *leap-jetson: original Leap Motion Controller hand tracking on NVIDIA Jetson GPUs*
+[Computer software]. Zenodo. https://doi.org/10.5281/zenodo.24050502
+
+```bibtex
+@software{marquez_aguilar_leap_jetson_2026,
+  author    = {Marquez Aguilar, Angel},
+  title     = {leap-jetson: original Leap Motion Controller hand tracking on NVIDIA Jetson GPUs},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.24050502},
+  url       = {https://github.com/OomAngel/leap-jetson},
+  license   = {Apache-2.0}
+}
+```
+
+This DOI always points to the latest version. GitHub's "Cite this repository" gives the same (from `CITATION.cff`). One maintainer, best effort: report bugs with
 the issue form, which asks for your board, JetPack, TensorRT and model versions.
