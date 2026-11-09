@@ -18,6 +18,8 @@ in TensorRT, and triangulates 21 joints per hand with the calibration stored on 
 > delivers 115). 3D is accurate with the hand 20–30 cm above the controller; it degrades with distance
 > (see [Limits](#limits)).
 
+**Write-up:** [how it works, what each speed-up was worth, and what failed](https://oomangel.github.io/leap-jetson/).
+
 *Not affiliated with, endorsed by or supported by Ultraleap. Leap Motion is a trademark of its owner.*
 
 ## Results
