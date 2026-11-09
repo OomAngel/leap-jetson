@@ -2,6 +2,7 @@
 
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.24050502.svg)](https://doi.org/10.5281/zenodo.24050502)
+[![Tests](https://github.com/OomAngel/leap-jetson/actions/workflows/ci.yml/badge.svg)](https://github.com/OomAngel/leap-jetson/actions/workflows/ci.yml)
 ![Platform: Jetson AGX Xavier · JetPack 5.1 · TensorRT 8.5](https://img.shields.io/badge/platform-Jetson%20AGX%20Xavier%20%C2%B7%20JetPack%205.1%20%C2%B7%20TensorRT%208.5-76b900.svg)
 
 <p align="center"><img src="docs/media/hero.gif" width="300" alt="A hand seen by the controller's infrared camera, with the tracked skeleton drawn on it: open hand, pinch, pointing"></p>
